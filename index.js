@@ -69,4 +69,40 @@ app.post('/items/xml', (req, res) => {
   const xml = req.body;
 
   parser.parseString(xml, (err, result) => {
-    if
+    if (err) {
+      return res.status(400).json({ error: 'Invalid XML' });
+    }
+
+    const items = result.Items?.Item;
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: 'No valid <Item> entries found' });
+    }
+
+    const stmt = db.prepare('INSERT INTO items (record, name, quantity, net_price) VALUES (?, ?, ?, ?)');
+
+    items.forEach(item => {
+      const record = parseInt(item.Record?.[0] || 0);
+      const name = item.Name?.[0] || '';
+      const quantity = parseFloat(item.Quantity?.[0] || 0);
+      const netPrice = parseFloat(item.NetPrice?.[0] || 0);
+
+      stmt.run(record, name, quantity, netPrice);
+    });
+
+    stmt.finalize();
+
+    res.json({ status: 'Items inserted successfully', count: items.length });
+  });
+});
+
+// GET /items — retrieve all items
+app.get('/items', (req, res) => {
+  db.all('SELECT * FROM items', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.listen(port, () => {
+  console.log(`Server listening at http://localhost:${port}`);
+});
