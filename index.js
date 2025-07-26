@@ -36,6 +36,11 @@ db.serialize(() => {
   )`);
 });
 
+// Root route for health check
+app.get('/', (req, res) => {
+  res.send('API is running');
+});
+
 // GET /users — get all users
 app.get('/users', (req, res) => {
   db.all('SELECT * FROM users', [], (err, rows) => {
