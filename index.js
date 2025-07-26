@@ -1,10 +1,13 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const xml2js = require('xml2js');
 const app = express();
 const port = process.env.PORT || 3000;
 
+const parser = new xml2js.Parser();
 app.use(express.json());
+app.use(express.text({ type: 'application/xml' }));
 
 // Use a file-based SQLite database named countydb.db in the project root
 const dbPath = path.resolve(__dirname, 'countydb.db');
@@ -16,12 +19,20 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-// Create the users table if it doesn't exist
+// Create users and items tables if they don't exist
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    record INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    quantity REAL NOT NULL,
+    net_price REAL NOT NULL
   )`);
 });
 
@@ -53,6 +64,9 @@ app.post('/users', (req, res) => {
   );
 });
 
-app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`);
-});
+// POST /items/xml — receive and insert items from XML
+app.post('/items/xml', (req, res) => {
+  const xml = req.body;
+
+  parser.parseString(xml, (err, result) => {
+    if
